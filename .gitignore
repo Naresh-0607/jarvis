@@ -1,0 +1,16 @@
+# Byte-code
+__pycache__/
+*.pyc
+
+# Virtualenv
+venv/
+
+# Environment files
+.env
+
+# Logs
+logs/
+
+# Databases and extracted guide text (created at runtime)
+data/
+build_guide.txt

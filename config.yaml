@@ -1,0 +1,269 @@
+# Project configuration
+
+# ---------------------------------------------------------------------------
+# Provider chain – keep the list in order of preference.
+# Each provider has:
+# * name: human readable identifier
+# * mode: "online" or "local" – the startup menu only loads one mode at a time
+# * base_url: the absolute endpoint for the OpenAI‑compatible chat API
+# * env_var: name of the environment variable that stores the API key
+# * models: ordered list of preferred model identifiers
+# ---------------------------------------------------------------------------
+providers:
+  - name: kaggle_ollama
+    mode: local
+    kind: ollama
+    base_url_env: OLLAMA_BASE_URL
+    api_key_env: OLLAMA_AUTH_TOKEN
+    models: ["qwen3-coder:30b"]
+    # Only one model local, so both tiers land on it.
+    tiers:
+      fast: ["qwen3-coder:30b"]
+      strong: ["qwen3-coder:30b"]
+    connect_timeout_s: 4
+    read_timeout_s: 60
+    options: { num_ctx: 16384 }
+  - name: groq
+    mode: online
+    kind: openai_compat
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY
+    # Live Groq model list, strongest first. The chain now falls through both
+    # models and providers, so every entry here is a real fallback.
+    models:
+      - "openai/gpt-oss-120b"
+      - "qwen/qwen3.8-27b"
+      - "openai/gpt-oss-20b"
+    # Two thinking tiers. The router picks one per message; /fast and /strong
+    # override it for the session.
+    tiers:
+      fast: ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
+      strong: ["openai/gpt-oss-120b", "qwen/qwen3.8-27b"]
+    connect_timeout_s: 8
+    read_timeout_s: 30
+cooldown_s: 20
+
+# ---------------------------------------------------------------------------
+# Other online providers use the same OpenAI-compatible transport. Uncomment
+# one, add its key to .env, and put real model ids in place of the "<model>"
+# placeholders (placeholders are ignored, so nothing breaks while they stay).
+# ---------------------------------------------------------------------------
+#  - name: gemini
+#    mode: online
+#    kind: openai_compat
+#    base_url: https://generativelanguage.googleapis.com/v1beta/openai
+#    api_key_env: GEMINI_API_KEY
+#    models: ["<gemini-model-id>"]
+#    tiers:
+#      fast: ["<gemini-model-id>"]
+#      strong: ["<gemini-model-id>"]
+#  - name: cerebras
+#    mode: online
+#    kind: openai_compat
+#    base_url: https://api.cerebras.ai/v1
+#    api_key_env: CEREBRAS_API_KEY
+#    models: ["<cerebras-model-id>"]
+#  - name: openrouter
+#    mode: online
+#    kind: openai_compat
+#    base_url: https://openrouter.ai/api/v1
+#    api_key_env: OPENROUTER_API_KEY
+#    models: ["<openrouter-model-id>"]
+
+# ---------------------------------------------------------------------------
+# General runtime settings
+# ---------------------------------------------------------------------------
+home_city: "New Delhi"
+timezone: "Asia/Kolkata"
+hotkey: "<ctrl>+<alt>+<space>"
+project_root: "C:/Users/Naresh/Projects"
+ntfy_topic_env: "NTFY_TOPIC"
+
+# ---------------------------------------------------------------------------
+# Desktop UI & TUI settings (Phase 9)
+# ---------------------------------------------------------------------------
+ui:
+  skip_mode_prompt: false
+  default_mode: "online"
+  accent_color: "cyan"
+  user_color: "cyan"
+  jarvis_color: "magenta"
+  idle_color: "dim"
+  thinking_color: "yellow"
+  fps: 28
+  ascii_ramp: " .:-=+*#%@"
+  orb_base_radius: 6
+  orb_gain: 6.0
+  width: 900
+  height: 520
+  min_width: 640
+  min_height: 380
+  start_hidden: false
+  show_caption: false
+
+# Project reader configuration
+projects:
+  enabled: true
+  directory: "C:/Users/Naresh/Projects"
+  excluded_dirs: [".git", "__pycache__", ".pytest_cache"]
+  excluded_extensions: [".log", ".tmp", ".cache", ".pyc"]
+  max_files: 50
+  max_file_size: 1048576
+
+# ---------------------------------------------------------------------------
+# Tasks and reminders (Phase 2)
+# ---------------------------------------------------------------------------
+tasks:
+  enabled: true
+  db_path: "data/jarvis.db"          # relative to the project root
+  repeat_overdue_minutes: 30         # nudge again this often while overdue
+  tick_seconds: 20                   # how often the scheduler looks for due slots
+  morning_briefing: "08:00"          # local time, 24h clock; "" disables it
+
+# ---------------------------------------------------------------------------
+# Voice in (Phase 3)
+# ---------------------------------------------------------------------------
+voice:
+  enabled: true
+  hotkey: "<ctrl>+<alt>+<space>"     # hold to talk, release to send
+  device: ""                         # "" = system default microphone
+  min_seconds: 0.4                   # anything shorter is ignored
+  max_seconds: 60                    # safety stop if the key sticks
+  trim_silence: true
+  silence_threshold: 0.01            # RMS below this counts as silence
+  below_normal_priority: true
+  stt_backend: groq                  # groq | local
+  stt_model: whisper-large-v3-turbo
+  stt_api_key_env: GROQ_API_KEY
+  language: en
+  stt_prompt: "Naresh, Kaggle, Ollama, Groq, ESP32, SQLite, Asia/Kolkata, ntfy"
+  # Local faster-whisper backend: disabled unless stt_backend is "local".
+  local_model: base.en
+  local_device: cpu
+  local_compute_type: int8
+  default_preset: calm
+  presets:
+    calm:
+      name: calm
+      display_name: "Calm"
+      piper_model: "models/piper/alba-medium.onnx"
+      piper_config: ""
+      length_scale: 1.05
+      noise_scale: 0.667
+      noise_w: 0.8
+      edge_voice: "en-GB-SoniaNeural"
+      edge_rate: "-8%"
+      edge_pitch: "-2Hz"
+      edge_volume: "+0%"
+      persona: "jarvis/persona.md"
+      fx:
+        enabled: false
+
+# ---------------------------------------------------------------------------
+# Voice out (Phase 4)
+# ---------------------------------------------------------------------------
+speech:
+  enabled: true
+  engine: auto                       # auto = local Piper first, edge-tts backup
+  # edge-tts fallback voice (used for network/backup speech)
+  voice: en-GB-SoniaNeural
+  rate: "-8%"
+  pitch: "-2Hz"
+  volume: "+0%"
+  # Local Piper voice: ~80-180 ms per sentence, works offline.
+  piper_model: "models/piper/alba-medium.onnx"
+  piper_config: ""                   # "" = <piper_model>.json
+  piper_length_scale: 1.05           # >1 is slower and calmer
+  max_sentence_chars: 180            # split runaway sentences
+  filler: true                       # short "one moment" lines during slow tools
+
+# ---------------------------------------------------------------------------
+# Screen eyes (Phase 5) - view-only. Captures stay in memory, never on disk.
+# ---------------------------------------------------------------------------
+screen:
+  enabled: true
+  pause_hotkey: "<ctrl>+<alt>+p"     # press to stop/allow screen reading
+  region: window                     # window = front window, monitor = whole screen
+  max_width: 1600                    # downscale wider captures before OCR
+  max_chars: 4000                    # cap the text handed to the brain
+  min_confidence: 0.5                # drop weak OCR guesses
+  ocr: auto                          # auto | rapidocr | tesseract
+  warmup: true                       # load the OCR model in the background
+  tray: true                         # small icon: green active, amber paused
+  # Windows whose titles contain these words are never captured.
+  blocklist:
+    - "1password"
+    - "bitwarden"
+    - "keepass"
+    - "lastpass"
+    - "dashlane"
+    - "authenticator"
+    - "credential manager"
+    - "windows security"
+    - "paypal"
+    - "net banking"
+    - "hdfc bank"
+    - "icici bank"
+    - "state bank of india"
+    - "coinbase"
+  # Optional rolling OCR history in RAM. Off by default: it needs a timer.
+  history:
+    enabled: false
+    interval_s: 3
+    keep_s: 180
+    change_threshold: 3.0
+
+# ---------------------------------------------------------------------------
+# Vision (optional, Phase 5). Off until a provider and key are set.
+# Gemini's free tier works through its OpenAI-compatible endpoint.
+# ---------------------------------------------------------------------------
+vision:
+  enabled: false
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai
+  api_key_env: GEMINI_API_KEY
+  model: ""                          # e.g. a current gemini flash vision model
+  timeout_s: 30
+
+# ---------------------------------------------------------------------------
+# Web Search: Tavily primary, Exa/DDGS fallbacks, retry, cache, quota guard
+# ---------------------------------------------------------------------------
+web_search:
+  providers:
+    - tavily
+    - exa
+    - ddgs
+  timeout_s: 6.0
+  overall_timeout_s: 10.0
+  cooldown_s: 120
+  weak_threshold: 0.4
+  min_results: 2
+  retry_rounds: 1
+  max_searches_per_question: 3
+  cache_ttl_general_s: 21600   # 6 hours
+  cache_ttl_recent_s: 1800      # 30 minutes
+  limits:
+    tavily: 1000
+    exa: 1000
+  jina_reader:
+    enabled: false
+    min_snippet_len: 100
+    max_chars: 3000
+    timeout_s: 8.0
+
+# ---------------------------------------------------------------------------
+# Miscellaneous placeholder values – the user fills these in from provider consoles
+# ---------------------------------------------------------------------------
+# The following environment variable names will be referenced in the .env
+# file when the user actually runs the assistant. They are listed here to
+# generate the .env.example.
+# You should replace the placeholder values with your real keys.
+#
+# Example entries that the doctor will check for:
+#  - OLLAMA_BASE_URL
+#  - OLLAMA_AUTH_TOKEN
+#  - GROQ_API_KEY
+#  - NTFY_TOPIC
+#
+# No actual key values are included in this file – they are omitted for
+# security reasons.
+# ---------------------------------------------------------------------------
